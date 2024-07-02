@@ -7,10 +7,13 @@ response = requests.get(url)
 
 # Создание пустого словаря для тем новостей
 url_list = []
-big_news_dict = {}
+count_url = []
 small_url_list = []
+big_news_dict = {}
 small_news_dict = {}
 news_dict = {}
+
+
 
 def big_news():
     if response.status_code == 200:
@@ -25,17 +28,23 @@ def big_news():
                 theme = link.text.strip()
                 big_news_dict[theme] = []  # Инициализируем пустым списком для каждой темы
 
+            count = 0
             for element in elements:
                 href = element.get('href')
                 if href:
                     # Формируем полные ссылки
                     full_url = f'https://news.google.com{href[1:]}' if href.startswith('.') else href
                     url_list.append(full_url)
+                    count += 1
 
+            # Добавляем количество ссылок в список count_url
+            count_url.append(count)
     else:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
+
     comb_flag = True
-    combine(big_news_dict,comb_flag,url_list,small_news_dict,small_url_list)
+    combine(big_news_dict, comb_flag, url_list, small_news_dict, small_url_list, count_url)
+
 
 def small_news():
     if response.status_code == 200:
@@ -57,19 +66,22 @@ def small_news():
 
     else:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
-    comb_flag = False
-    combine(big_news_dict,comb_flag,url_list,small_news_dict,small_url_list)
 
-def combine(big_news_dict,comb_flag,url_list,small_news_dict,small_url_list):
+    comb_flag = False
+    combine(big_news_dict, comb_flag, url_list, small_news_dict, small_url_list, count_url)
+
+
+
+def combine(big_news_dict, comb_flag, url_list, small_news_dict, small_url_list, count_url):
     if comb_flag:
-        # Добавляем до 4 ссылок к каждой теме в news_dict
-        for key in big_news_dict:
-            for _ in range(4):
+        # Добавляем ссылки к каждой теме в big_news_dict
+        for idx, key in enumerate(big_news_dict):
+            count = count_url[idx]
+            for _ in range(count):
                 if url_list:
                     big_news_dict[key].append(url_list.pop(0))
-                    small_news()
     else:
-        # Добавляем до 4 ссылок к каждой теме в news_dict
+        # Добавляем до 1 ссылки к каждой теме в small_news_dict
         for key in small_news_dict:
             for _ in range(1):
                 if small_url_list:
@@ -77,9 +89,11 @@ def combine(big_news_dict,comb_flag,url_list,small_news_dict,small_url_list):
                     news_dict.update(big_news_dict)
                     news_dict.update(small_news_dict)
 
+def main():
+    big_news()
+    small_news()
+    count_key = len(news_dict)
+    print(news_dict)
+    print(count_key)
 
-
-big_news()
-print(news_dict)
-
-
+main()
