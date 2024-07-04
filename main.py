@@ -2,20 +2,22 @@ import requests
 from bs4 import BeautifulSoup
 
 # URL страницы Google Новостей
-url = 'https://news.google.com/topics/CAAqKAgKIiJDQkFTRXdvSkwyMHZNR1ptZHpWbUVnSnlkUm9DVWxVb0FBUAE?hl=ru&gl=RU&ceid=RU%3Aru'
+url = 'https://news.google.com/u/2/topics/CAAqIQgKIhtDQkFTRGdvSUwyMHZNRGQwTWpFU0FuVnJLQUFQAQ?hl=uk&gl=UA&ceid=UA%3Auk'
 response = requests.get(url)
 
 # Создание пустого словаря для тем новостей
 url_list = []
 count_url = []
-small_url_list = []
 big_news_dict = {}
 small_news_dict = {}
 news_dict = {}
 
 
-
 def big_news():
+    global big_news_dict
+    global url_list
+    global count_url
+
     if response.status_code == 200:
         soup = BeautifulSoup(response.content, "lxml")
         blocks = soup.find_all('div', class_='W8yrY')
@@ -43,10 +45,13 @@ def big_news():
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
 
     comb_flag = True
-    combine(big_news_dict, comb_flag, url_list, small_news_dict, small_url_list, count_url)
+    combine(big_news_dict, comb_flag, url_list, small_news_dict, count_url)
 
 
 def small_news():
+    global small_news_dict
+    global url_list
+
     if response.status_code == 200:
         soup = BeautifulSoup(response.content, "lxml")
         blocks = soup.find_all('div', class_="m5k28")
@@ -61,39 +66,59 @@ def small_news():
                 if href:
                     # Формируем полные ссылки
                     full_url = f'https://news.google.com{href[1:]}' if href.startswith('.') else href
-                    small_url_list.append(full_url)
+                    url_list.append(full_url)
                     small_news_dict[theme2] = []
 
     else:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
 
     comb_flag = False
-    combine(big_news_dict, comb_flag, url_list, small_news_dict, small_url_list, count_url)
+    combine(big_news_dict, comb_flag, url_list, small_news_dict, count_url)
 
 
+def get_final_url(news_dict):
+    for theme, links in news_dict.items():
+        for i in range(len(links)):
+            try:
+                redirect_url = links[i]
+                # Отправка запроса на непрямую ссылку
+                response = requests.get(redirect_url)
+                final_url = response.url
+                links[i] = final_url
+            except requests.RequestException as e:
+                print(f"Error retrieving URL {redirect_url}: {e}")
 
-def combine(big_news_dict, comb_flag, url_list, small_news_dict, small_url_list, count_url):
+
+def combine(big_news_dict, comb_flag, url_list, small_news_dict, count_url):
+    global news_dict
+
     if comb_flag:
-        # Добавляем ссылки к каждой теме в big_news_dict
         for idx, key in enumerate(big_news_dict):
             count = count_url[idx]
             for _ in range(count):
                 if url_list:
                     big_news_dict[key].append(url_list.pop(0))
+        get_final_url(big_news_dict)
     else:
-        # Добавляем до 1 ссылки к каждой теме в small_news_dict
         for key in small_news_dict:
             for _ in range(1):
-                if small_url_list:
-                    small_news_dict[key].append(small_url_list.pop(0))
-                    news_dict.update(big_news_dict)
-                    news_dict.update(small_news_dict)
+                if url_list:
+                    small_news_dict[key].append(url_list.pop(0))
+        get_final_url(small_news_dict)
+
+    news_dict.update(big_news_dict)
+    news_dict.update(small_news_dict)
+
 
 def main():
     big_news()
     small_news()
-    count_key = len(news_dict)
+    count_news = len(news_dict)
+    print(count_news)
     print(news_dict)
-    print(count_key)
+    return news_dict  # Возвращаем news_dict
 
-main()
+
+# Если файл main.py запускается как основная программа, выполним main()
+if __name__ == "__main__":
+    main()
