@@ -13,7 +13,7 @@ client = commands.Bot(command_prefix="/", intents=intents)
 
 # Функция для чтения новостей из файла
 def read_news_file():
-    with open("D:\\PyCharm Community Edition 2023.3.2\\DS_bot\\news.txt", "r", encoding="utf-8") as f:
+    with open("news.txt", "r", encoding="utf-8") as f:
         news_lines = f.read().splitlines()  # Читаем файл и разбиваем строки на список
     news_topics = []
     current_topic = ""
